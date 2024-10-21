@@ -1,5 +1,5 @@
 # Stage: build
-FROM node:22 as build
+FROM node:23 as build
 WORKDIR /app
 COPY package*.json /app/
 RUN npm install --force
