@@ -64,6 +64,7 @@ async function handleNewConnectionPost(req, res, next) {
     const agentService = require('../services/AgentService');
 
     const invitation = await agentService.createInvitation();
+    console.log('Invitation Object:', invitation); // Debugging log
     if (invitation) {
         invitation.invitation = JSON.stringify(invitation.invitation, null, 4);
     }
@@ -103,18 +104,80 @@ async function handleAcceptConnectionGet(req, res, next) {
     });
 }
 
+// async function handleAcceptConnectionPost(req, res, next) {
+//     const agentService = require('../services/AgentService');
+
+//     const errors = validationResult(req);
+//     if (!errors.isEmpty()) {
+//         req.errors = errors.array({ onlyFirstError: true });
+//         req.invitaion = req.body;
+//         return next();
+//     }
+
+//     const result=await agentService.receiveInvitation(req.body.invitation_object);
+//     console.log(result);
+//     res.status(201).redirect('/connections/active');
+// }
+
+// async function handleAcceptConnectionPost(req, res, next) {
+//     const agentService = require('../services/AgentService');
+
+//     const errors = validationResult(req);
+//     if (!errors.isEmpty()) {
+//         req.errors = errors.array({ onlyFirstError: true });
+//         req.invitaion = req.body;
+//         return next();
+//     }
+
+//     await agentService.receiveInvitation(req.body.invitation_object);
+//     res.status(201).redirect('/connections/active');
+// }
+
+
+// async function handleAcceptConnectionPost(req, res, next) {
+//     const agentService = require('../services/AgentService');
+
+//     const errors = validationResult(req);
+//     if (!errors.isEmpty()) {
+//         req.errors = errors.array({ onlyFirstError: true });
+//         req.invitation = req.body;
+//         console.error('Validation errors:', req.errors); // Debugging log
+//         return next();
+//     }
+
+//     console.log('Received invitation object:', req.body.invitation_object); // Debugging log
+
+//     try {
+//         const response = await agentService.receiveInvitation(req.body.invitation_object);
+//         console.log('API response from receiveInvitation:', response); // Debugging log
+//         res.status(201).redirect('/connections/active');
+//     } catch (error) {
+//         console.error('Error in handleAcceptConnectionPost:', error); // Debugging log
+//         res.status(500).send('Failed to process invitation');
+//     }
+// }
+
 async function handleAcceptConnectionPost(req, res, next) {
     const agentService = require('../services/AgentService');
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         req.errors = errors.array({ onlyFirstError: true });
-        req.invitaion = req.body;
+        req.invitation = req.body;
+        console.error('Validation errors:', req.errors); // Debugging log
         return next();
     }
 
-    await agentService.receiveInvitation(req.body.invitation_object);
-    res.status(201).redirect('/connections/active');
+    console.log('Received invitation object:', req.body.invitation_object); // Debugging log
+
+    try {
+        const response = await agentService.receiveInvitation(req.body.invitation_object);
+        console.log('API response from receiveInvitation:', response); // Debugging log
+        res.status(201).redirect('/connections/active');
+    } catch (error) {
+        console.error('Error in handleAcceptConnectionPost:', error); // Debugging log
+        res.status(500).send('Failed to process invitation');
+    }
 }
 
 router.get('/:id/remove', async function (req, res, next) {

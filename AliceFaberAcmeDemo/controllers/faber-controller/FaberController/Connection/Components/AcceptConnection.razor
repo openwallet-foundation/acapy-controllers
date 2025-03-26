@@ -50,7 +50,7 @@
         Navigation.NavigateTo("/connections/active");
     }
 
-    private void _parseInvitationUrl(ChangeEventArgs e)
+    @* private void _parseInvitationUrl(ChangeEventArgs e)
     {
         _invitationUrlError = false;
         var value = e.Value.ToString();
@@ -69,6 +69,43 @@
 
             var data = System.Convert.FromBase64String(invitationParam);
             var invitationObject = JsonConvert.DeserializeObject<dynamic>(System.Text.ASCIIEncoding.ASCII.GetString(data));
+            _acceptConnectionModel.InvitationObject = invitationObject.ToString();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            _invitationUrlError = true;
+        }
+    } *@
+
+    private void _parseInvitationUrl(ChangeEventArgs e)
+    {
+        _invitationUrlError = false;
+        var value = e.Value.ToString();
+        if (string.IsNullOrEmpty(value))
+        {
+            return;
+        }
+        try
+        {
+            var uri = new Uri(value);
+            // Try to get the 'c_i' parameter first
+            var invitationParam = HttpUtility.ParseQueryString(uri.Query).Get("c_i");
+
+            // If 'c_i' is not found, try to get the 'oob' parameter
+            if (string.IsNullOrEmpty(invitationParam))
+            {
+                invitationParam = HttpUtility.ParseQueryString(uri.Query).Get("oob");
+            }
+
+            if (string.IsNullOrEmpty(invitationParam))
+            {
+                throw new Exception("No valid invitation parameter found in the URL.");
+            }
+
+            // Decode the Base64-encoded invitation parameter
+            var data = System.Convert.FromBase64String(invitationParam);
+            var invitationObject = JsonConvert.DeserializeObject<dynamic>(System.Text.Encoding.UTF8.GetString(data));
             _acceptConnectionModel.InvitationObject = invitationObject.ToString();
         }
         catch (Exception ex)

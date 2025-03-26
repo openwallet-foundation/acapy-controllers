@@ -30,13 +30,8 @@ namespace FaberController
             services.AddServerSideBlazor();
             services.AddHttpClient<FCAgentService>(c =>
             {
-                var agentUrl = Environment.GetEnvironmentVariable("FABER_AGENT_HOST");
+                var agentUrl = "host.docker.internal";
                 var port = 8021;
-
-                if (agentUrl == null || agentUrl == "") {
-                    agentUrl = "localhost";
-                }
-
                 var formattedAgentUrl = String.Format("http://{0}:{1}", agentUrl, port);
 
                 Console.WriteLine("Agent is running on: " + formattedAgentUrl);
@@ -46,6 +41,15 @@ namespace FaberController
                 c.DefaultRequestHeaders.Add("User-Agent", "FaberController");
             });
             services.AddTransient<FCNavLinkService>();
+
+            // Add CORS policy
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowSpecificOrigin",
+                    builder => builder.WithOrigins("http://localhost:8130")
+                                      .AllowAnyHeader()
+                                      .AllowAnyMethod());
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -66,6 +70,11 @@ namespace FaberController
             app.UseStaticFiles();
 
             app.UseRouting();
+
+            // Use CORS policy
+            app.UseCors("AllowSpecificOrigin");
+
+            app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {

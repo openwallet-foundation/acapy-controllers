@@ -80,30 +80,32 @@
     }, 300);
 
     const debouncedUpdateCredDefId = debounce((e) => {
-        if (!proofObject) {
-            return;
-        }
+    if (!proofObject) {
+        return;
+    }
 
-        try {
-            const value = e.target.value || '<Enter a valid Credential Definition ID>';
-            const proof = JSON.parse(proofObject.value);
+    try {
+        const value = e.target.value || '<Enter a valid Credential Definition ID>';
+        const proof = JSON.parse(proofObject.value);
 
-            Object.keys(proof.proof_request.requested_attributes)
-                .filter(attr => proof.proof_request.requested_attributes[attr].restrictions)
-                .forEach(attr => {
-                    proof.proof_request.requested_attributes[attr].restrictions[0].cred_def_id = value
-                });
-            Object.keys(proof.proof_request.requested_predicates)
-                .filter(attr => proof.proof_request.requested_predicates[attr].restrictions)
-                .forEach(attr => {
-                    proof.proof_request.requested_predicates[attr].restrictions[0].cred_def_id = value
-                });
-            proofObject.value = JSON.stringify(proof, null, 4);
-        } catch (error) {
-            console.error(error);
-            return;
-        }
-    }, 300);
+        // Fix the correct path
+        Object.keys(proof.presentation_request.indy.requested_attributes)
+            .filter(attr => proof.presentation_request.indy.requested_attributes[attr].restrictions)
+            .forEach(attr => {
+                proof.presentation_request.indy.requested_attributes[attr].restrictions[0].cred_def_id = value;
+            });
+
+        Object.keys(proof.presentation_request.indy.requested_predicates)
+            .filter(attr => proof.presentation_request.indy.requested_predicates[attr].restrictions)
+            .forEach(attr => {
+                proof.presentation_request.indy.requested_predicates[attr].restrictions[0].cred_def_id = value;
+            });
+
+        proofObject.value = JSON.stringify(proof, null, 4);
+    } catch (error) {
+        console.error("Error updating credential definition ID:", error);
+    }
+}, 300);
 
     // Adapted from David Walsh Blog https://davidwalsh.name/javascript-debounce-function
     function debounce(fn, delay, now) {

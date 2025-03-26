@@ -2,9 +2,10 @@
     <div class="card-body">
         <div class="card-title">
             <h5>
-                <span>{{ proof?.presentation_request?.name }}</span>
-                <span
-                    *ngIf="proof?.presentation_request?.version">&nbsp;({{ proof?.presentation_request?.version }})</span>
+                <span>{{ proof?.by_format?.pres_request?.indy?.name }}</span>
+                <span *ngIf="proof?.by_format?.pres_request?.indy?.version">
+                    &nbsp;({{ proof?.by_format?.pres_request?.indy?.version }})
+                </span>
             </h5>
             <small>
                 <span *ngIf="proof?.initiator === 'self'">Sent&nbsp;</span>
@@ -15,7 +16,7 @@
         <div class="card-text">
             <div>
                 <small class="text-muted">Presentation Exchange ID:&nbsp;</small>
-                <p>{{ proof?.presentation_exchange_id }}</p>
+                <p>{{ proof?.pres_ex_id }}</p>
             </div>
         </div>
     </div>

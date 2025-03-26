@@ -2,9 +2,9 @@
     <div class="card-body">
         <div class="card-title">
             <h5>
-                <span>{{ proof.presentation_request.name }}</span>
-                {{#if proof.presentation_request.version}}
-                    <span>&nbsp;({{ proof.presentation_request.version }})</span>
+                <span>{{ proof.by_format.pres_request.indy.name }}</span>
+                {{#if proof.by_format.pres_request.indy.version}}
+                    <span>&nbsp;({{ proof.by_format.pres_request.indy.version }})</span>
                 {{/if}}
             </h5>
             <small>
@@ -17,11 +17,46 @@
             </small>
             <small class="text-muted">{{ proof.created_at }}</small>
         </div>
+
         <div class="card-text">
             <div>
                 <small class="text-muted">Presentation Exchange ID:&nbsp;</small>
-                <p>{{ proof.presentation_exchange_id }}</p>
+                <p>{{ proof.pres_ex_id }}</p>
             </div>
+
+            {{#if proof.by_format.pres_request.indy.requested_attributes}}
+            <div>
+                <small class="text-muted">Requested Attributes:</small>
+                <ul>
+                    {{#each proof.by_format.pres_request.indy.requested_attributes}}
+                        <li>{{this.name}}</li>
+                    {{/each}}
+                </ul>
+            </div>
+            {{/if}}
+
+            {{#if proof.by_format.pres.indy.requested_proof.revealed_attrs}}
+            <div>
+                <small class="text-muted">Revealed Attributes:</small>
+                <ul>
+                    {{#each proof.by_format.pres.indy.requested_proof.revealed_attrs}}
+                        <li>{{@key}}: {{this.raw}}</li>
+                    {{/each}}
+                </ul>
+            </div>
+            {{/if}}
+
+            {{#if proof.by_format.pres.indy.requested_proof.self_attested_attrs}}
+            <div>
+                <small class="text-muted">Self-Attested Attributes:</small>
+                <ul>
+                    {{#each proof.by_format.pres.indy.requested_proof.self_attested_attrs}}
+                        <li>{{@key}}: {{this}}</li>
+                    {{/each}}
+                </ul>
+            </div>
+            {{/if}}
+
             {{#eq proof.verified 'true'}}
             <div>
                 <span>
@@ -30,9 +65,28 @@
                 &nbsp;
                 <span>Verified</span>
             </div>
+            {{else}}
+                {{#if (or (eq proof.state 'done') (eq proof.state 'abandoned'))}}
+                <div>
+                    <span>
+                        <i class="fas fa-times text-danger"></i>
+                    </span>
+                    &nbsp;
+                    <span class="text-danger">Rejected</span>
+                </div>
+                {{else}}
+                <div>
+                    <span>
+                        <i class="fas fa-spinner fa-spin text-warning"></i>
+                    </span>
+                    &nbsp;
+                    <span class="text-warning">Processing</span>
+                </div>
+                {{/if}}
             {{/eq}}
         </div>
     </div>
+
     <div class="card-footer">
         <p class="card-text">
             <small class="text-muted">Updated at {{ proof.updated_at }}</small>

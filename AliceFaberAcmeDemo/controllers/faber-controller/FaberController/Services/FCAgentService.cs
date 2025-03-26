@@ -4,15 +4,18 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using FaberController.Enums;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace FaberController.Services
 {
     public class FCAgentService
     {
-        public FCAgentService(HttpClient Http)
+        public FCAgentService(HttpClient http)
         {
-            _http = Http;
+            _http = http;
         }
 
         private HttpClient _http { get; }
@@ -52,23 +55,30 @@ namespace FaberController.Services
 
         public async Task<JObject> RemoveConnection(string connectionId)
         {
-            if (connectionId == null || connectionId == "")
+            if (string.IsNullOrEmpty(connectionId))
             {
                 Console.Error.WriteLine("Must provide a connection ID");
                 return new JObject();
             }
+
             try
             {
-                using var content = new StringContent("");
-                var response = await _http.PostAsync(string.Format("/connections/{0}/remove", connectionId), content);
+                // Correct endpoint for removing a connection
+                var response = await _http.DeleteAsync($"/connections/{connectionId}");
                 response.EnsureSuccessStatusCode();
 
+                // Read and parse the response
                 var responseString = await response.Content.ReadAsStringAsync();
-                return JObject.Parse(responseString);
+                return !string.IsNullOrEmpty(responseString) ? JObject.Parse(responseString) : new JObject();
+            }
+            catch (HttpRequestException httpEx)
+            {
+                Console.Error.WriteLine($"HTTP Request Error: {httpEx.Message}");
+                return new JObject();
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine(ex);
+                Console.Error.WriteLine($"Error: {ex.Message}");
                 return new JObject();
             }
         }
@@ -77,15 +87,31 @@ namespace FaberController.Services
         {
             try
             {
-                using var content = new StringContent("");
-                var response = await _http.PostAsync("/connections/create-invitation", content);
-                response.EnsureSuccessStatusCode();
+            // Define the request payload
+            var invitationRequest = new
+            {
+                handshake_protocols = new[] { "https://didcomm.org/didexchange/1.1" }
+            };
 
-                var responseString = await response.Content.ReadAsStringAsync();
-                return JObject.Parse(responseString);
+            // Serialize the payload to JSON
+            var content = new StringContent(JsonConvert.SerializeObject(invitationRequest), Encoding.UTF8, "application/json");
+
+            // Send the POST request to the /out-of-band/create-invitation endpoint
+            var response = await _http.PostAsync("/out-of-band/create-invitation", content);
+            response.EnsureSuccessStatusCode();
+
+            // Read and parse the response
+            var responseString = await response.Content.ReadAsStringAsync();
+            var invitation = JObject.Parse(responseString);
+
+            // Log the invitation data
+            Console.WriteLine("Invitation created successfully: " + invitation.ToString());
+
+            return invitation;
             }
             catch (Exception ex)
             {
+                // Log any errors
                 Console.Error.WriteLine(ex);
                 return new JObject();
             }
@@ -95,19 +121,22 @@ namespace FaberController.Services
         {
             try
             {
-
-                using var content = new StringContent(invitation);
-                var response = await _http.PostAsync("/connections/receive-invitation", content);
-
+                // Step 1: Receive the invitation
+                using var content = new StringContent(invitation, Encoding.UTF8, "application/json");
+                var response = await _http.PostAsync("/out-of-band/receive-invitation", content);
                 response.EnsureSuccessStatusCode();
 
                 var responseString = await response.Content.ReadAsStringAsync();
-                return JObject.Parse(responseString);
+                var invitationResponse = JObject.Parse(responseString);
+
+                Console.WriteLine("Invitation received successfully.");
+                
+                return invitationResponse; // Return only the response from receive-invitation
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine(ex);
-                return new JObject();
+                Console.Error.WriteLine($"Error in ReceiveInvitation: {ex.Message}");
+                return new JObject(); // Return empty object on failure
             }
         }
 
@@ -121,7 +150,6 @@ namespace FaberController.Services
                 var responseString = await response.Content.ReadAsStringAsync();
                 var jsonResponse = JObject.Parse(responseString);
                 return jsonResponse.Value<JArray>("schema_ids");
-
             }
             catch (Exception ex)
             {
@@ -134,7 +162,7 @@ namespace FaberController.Services
         {
             try
             {
-                var response = await _http.GetAsync(string.Format("/schemas/{0}", schemaId));
+                var response = await _http.GetAsync($"/schemas/{schemaId}");
                 response.EnsureSuccessStatusCode();
 
                 var responseString = await response.Content.ReadAsStringAsync();
@@ -157,7 +185,6 @@ namespace FaberController.Services
                 var responseString = await response.Content.ReadAsStringAsync();
                 var jsonResponse = JObject.Parse(responseString);
                 return jsonResponse.Value<JArray>("credential_definition_ids");
-
             }
             catch (Exception ex)
             {
@@ -170,7 +197,7 @@ namespace FaberController.Services
         {
             try
             {
-                var response = await _http.GetAsync(string.Format("/credential-definitions/{0}", credentialDefinitionId));
+                var response = await _http.GetAsync($"/credential-definitions/{credentialDefinitionId}");
                 response.EnsureSuccessStatusCode();
 
                 var responseString = await response.Content.ReadAsStringAsync();
@@ -188,11 +215,16 @@ namespace FaberController.Services
         {
             try
             {
+                    // Print the content before sending the request
+                      Console.WriteLine("Sending Credential Request:");
+                     Console.WriteLine(credential);
+
                 using var content = new StringContent(credential, Encoding.UTF8, "application/json");
-                content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-                var response = await _http.PostAsync("/issue-credential/send", content);
-                 response.EnsureSuccessStatusCode();
-                var result = await response.Content.ReadAsStringAsync();
+                 // Print the content before sending the request
+                      Console.WriteLine("Sending Content Request:");
+                     Console.WriteLine(content);
+                var response = await _http.PostAsync("/issue-credential-2.0/send-offer", content);
+                response.EnsureSuccessStatusCode();
 
                 var responseString = await response.Content.ReadAsStringAsync();
                 return JObject.Parse(responseString);
@@ -203,5 +235,6 @@ namespace FaberController.Services
                 return new JObject();
             }
         }
+
     }
 }

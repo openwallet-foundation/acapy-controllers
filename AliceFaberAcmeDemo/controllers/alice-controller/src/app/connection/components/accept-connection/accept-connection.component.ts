@@ -58,11 +58,20 @@ export class AcceptConnectionComponent implements OnInit {
         map((value: string) => {
           try {
             const url = new URL(value);
-            const invitationParam = url.searchParams.get('c_i');
+
+            // Try to get the 'c_i' parameter first
+            let invitationParam = url.searchParams.get('c_i');
+
+            // If 'c_i' is not found, try to get the 'oob' parameter
             if (!invitationParam) {
-              throw new Error();
+              invitationParam = url.searchParams.get('oob');
             }
 
+            if (!invitationParam) {
+              throw new Error('No valid invitation parameter found in the URL.');
+            }
+
+            // Decode the Base64-encoded invitation parameter
             this.invitation.setValue(JSON.stringify(JSON.parse(atob(invitationParam)), null, 4));
             this.invitation.markAsDirty();
             this.invitation.updateValueAndValidity();

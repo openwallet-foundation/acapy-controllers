@@ -10,53 +10,56 @@ navLinkService.registerCustomLinks([
 ]);
 
 const proofJSON = {
+    "comment": "This is a comment about the reason for the proof",
     "connection_id": "<Enter a valid Connection ID>",
-    "proof_request": {
-      "name": "Proof of Education",
-      "version": "1.0",
-      "requested_attributes": {
-        "0_name_uuid": {
-          "name": "name",
-          "restrictions": [
-            {
-              "cred_def_id": "<Enter a valid Credential Definition ID>"
+    "presentation_request": {
+        "indy": {
+            "name": "Proof of Education",
+            "version": "1.0",
+            "requested_attributes": {
+                "0_name_uuid": {
+                    "name": "name",
+                    "restrictions": [
+                        {
+                            "cred_def_id": "<Enter a valid Credential Definition ID>"
+                        }
+                    ]
+                },
+                "0_date_uuid": {
+                    "name": "date",
+                    "restrictions": [
+                        {
+                            "cred_def_id": "<Enter a valid Credential Definition ID>"
+                        }
+                    ]
+                },
+                "0_degree_uuid": {
+                    "name": "degree",
+                    "restrictions": [
+                        {
+                            "cred_def_id": "<Enter a valid Credential Definition ID>"
+                        }
+                    ]
+                },
+                "0_self_attested_thing_uuid": {
+                    "name": "self_attested_thing"
+                }
+            },
+            "requested_predicates": {
+                "0_age_GE_uuid": {
+                    "name": "birthdate_dateint",
+                    "p_type": ">=",
+                    "p_value": 18,
+                    "restrictions": [
+                        {
+                            "cred_def_id": "<Enter a valid Credential Definition ID>"
+                        }
+                    ]
+                }
             }
-          ]
-        },
-        "0_date_uuid": {
-          "name": "date",
-          "restrictions": [
-            {
-              "cred_def_id": "<Enter a valid Credential Definition ID>"
-            }
-          ]
-        },
-        "0_degree_uuid": {
-          "name": "degree",
-          "restrictions": [
-            {
-              "cred_def_id": "<Enter a valid Credential Definition ID>"
-            }
-          ]
-        },
-        "0_self_attested_thing_uuid": {
-          "name": "self_attested_thing"
         }
-      },
-      "requested_predicates": {
-        "0_age_GE_uuid": {
-          "name": "birthdate_dateint",
-          "p_type": ">=",
-          "p_value": 18,
-          "restrictions": [
-            {
-              "cred_def_id": "<Enter a valid Credential Definition ID>"
-            }
-          ]
-        }
-      }
     }
-  }
+};
 
 router.use(function (req, res, next) {
     navLinkService.clearLinkClasses();
