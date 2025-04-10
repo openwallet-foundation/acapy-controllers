@@ -1,0 +1,13 @@
+version: "3"
+services:
+  acme-controller:
+    build: .
+    ports:
+      - "8140:80" # Expose a different port for the controller
+    environment:
+      - AGENT_HOST=host.docker.internal
+      - AGENT_PORT=8040
+    networks:
+      - aca
+networks:
+  aca:

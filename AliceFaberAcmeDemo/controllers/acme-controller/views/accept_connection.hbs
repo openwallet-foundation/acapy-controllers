@@ -83,19 +83,28 @@
             }
         }
     }
-
+    
     function decode(e) {
-        try {
-            const value = e.target.value;
-            if (!value) {
-                return;
-            }
-            const url = new URL(value);
-            const invitationParam = url.searchParams.get('c_i');
-            if (!invitationParam) {
-                throw new Error();
-            }
+    try {
+        const value = e.target.value;
+        if (!value) {
+            return;
+        }
+        const url = new URL(value);
 
+        // Try to get the 'c_i' parameter first
+        let invitationParam = url.searchParams.get('c_i');
+
+        // If 'c_i' is not found, try to get the 'oob' parameter
+        if (!invitationParam) {
+            invitationParam = url.searchParams.get('oob');
+        }
+
+        if (!invitationParam) {
+            throw new Error('No valid invitation parameter found in the URL.');
+        }
+
+            // Decode the Base64-encoded invitation parameter
             objectInput.value = JSON.stringify(JSON.parse(atob(invitationParam)), null, 4);
             removeInvalidObjectErr();
         } catch (error) {

@@ -42,7 +42,7 @@
                 <div class="form-group"> 
                     <label>Or scan the following QR Code:</label>
                     <div/>
-                    <object data="@($"data:image/svg+xml;utf8,{Uri.EscapeDataString(QrCodeContent)}")" type="image/svg+xml" width="300" height="300"></object>
+                    <object data="@($"data:image/svg+xml;utf8,{QrCodeContent}")" type="image/svg+xml" width="300" height="300"></object>
                 </div>
             </div>
         </div>
@@ -62,8 +62,23 @@
         if (Invitation != null && Invitation.HasValues)
         {
             InvitationObject = Invitation["invitation"].ToString();
-            InvitationUrl = Invitation["invitation_url"].ToString();
-            QrCodeContent = GenerateQrCode(InvitationUrl);
+            try
+            {
+                InvitationUrl = Invitation["invitation_url"].ToString();
+                QrCodeContent = GenerateQrCode(InvitationUrl);
+            }
+            catch (UriFormatException ex)
+            {
+                Console.Error.WriteLine("Invalid URI: " + ex.Message);
+                InvitationUrl = "Error: Invalid URI";
+                QrCodeContent = string.Empty;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("An error occurred: " + ex.Message);
+                InvitationUrl = "Error: Unable to load invitation";
+                QrCodeContent = string.Empty;
+            }
         }
         base.StateHasChanged();
     }
@@ -75,9 +90,11 @@
 
     private string GenerateQrCode(string invitationUrl)
     {
-        var qrValue = invitationUrl;
+        try
+        {
+            var qrValue = invitationUrl;
 
-        var barcodeWriter = new BarcodeWriterSvg
+            var barcodeWriter = new BarcodeWriterSvg
             {
                 Format = BarcodeFormat.QR_CODE,
                 Options = new QrCodeEncodingOptions
@@ -86,10 +103,16 @@
                     Width = 300
                 }
             };
+            
+            var qrCodeImage = barcodeWriter.Write(qrValue);
+            var qrCodeContent = qrCodeImage.Content;
 
-        var qrCodeImage = barcodeWriter.Write(qrValue);
-        var qrCodeContent = qrCodeImage.Content;
-
-        return qrCodeContent;
+            return qrCodeContent;
+        }
+        catch (UriFormatException ex)
+        {
+            Console.Error.WriteLine("Invalid URI: " + ex.Message);
+            return string.Empty;
+        }
     }
 }

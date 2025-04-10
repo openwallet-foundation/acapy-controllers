@@ -4,90 +4,119 @@
 . /dev/stdin <<<"$(cat <(curl -s --raw https://raw.githubusercontent.com/bcgov/DITP-DevOps/main/code/snippets/getDockerHost))"
 
 function start_logs() {
-	cd ./docker
-	docker-compose logs -f --tail ${TAIL:-10}
+    cd ./docker
+    docker compose logs -f --tail ${TAIL:-10}
+}
+
+function start_faber() {
+    echo "Starting Faber controller..."
+    cd controllers/faber-controller
+    docker compose up -d
+    cd -
+}
+
+function start_alice() {
+    echo "Starting Alice controller..."
+    cd controllers/alice-controller
+    docker compose up -d
+    cd -
+}
+
+function start_acme() {
+    echo "Starting Acme controller..."
+    cd controllers/acme-controller
+    docker compose up -d
+    cd -
 }
 
 function web_start() {
-	echo "Starting all agents and controllers, this may take a moment."
+    echo "Starting all agents and controllers, this may take a moment."
 
-	FABER_AGENT_HOST="faber-agent"
-	ALICE_AGENT_HOST=${ALICE_AGENT_HOST:-"localhost"}
-	ACME_AGENT_HOST="acme-agent"
+    FABER_AGENT_HOST="localhost"
+    ALICE_AGENT_HOST="localhost"
+    ACME_AGENT_HOST="localhost"
 
-	if [ -z "${PWD_HOST_FQDN}" ]; then
-		DOCKERHOST=$(getDockerHost)
-		RUNMODE="docker"
-	else
-		PWD_HOST="${PWD_HOST_FQDN}"
-		if [ "$PWD_HOST_FQDN" = "labs.play-with-docker.com" ]; then
-			export ETH_CONFIG="eth1"
-		elif [ "$PWD_HOST_FQDN" = "play-with-docker.vonx.io" ]; then
-			export ETH_CONFIG="eth0"
-		else
-			export ETH_CONFIG="eth0"
-		fi
-		MY_HOST=$(ifconfig ${ETH_CONFIG} | grep inet | cut -d':' -f2 | cut -d' ' -f1 | sed 's/\./\-/g')
-		ALICE_AGENT_HOST="ip${MY_HOST}-${SESSION_ID}-8031.direct.${PWD_HOST_FQDN}"
-		DOCKERHOST="ip${MY_HOST}-${SESSION_ID}-{PORT}.direct.${PWD_HOST_FQDN}"
-		RUNMODE="pwd"
-	fi
+    AGENT_URLS="FABER_AGENT_HOST=${FABER_AGENT_HOST} ALICE_AGENT_HOST=${ALICE_AGENT_HOST} ACME_AGENT_HOST=${ACME_AGENT_HOST}"
+    DOCKER_ENV="$AGENT_URLS"
 
-	AGENT_URLS="FABER_AGENT_HOST=${FABER_AGENT_HOST} ALICE_AGENT_HOST=${ALICE_AGENT_HOST} ACME_AGENT_HOST=${ACME_AGENT_HOST}"
-	DOCKER_ENV="$AGENT_URLS RUNMODE=${RUNMODE} DOCKERHOST=${DOCKERHOST}"
+    echo "Agent Hosts: ${AGENT_URLS}"
 
-	echo "Agent Hosts: ${AGENT_URLS}"
+    export $DOCKER_ENV
 
-	if ! [ -z "$LEDGER_URL" ]; then
-		GENESIS_URL="${LEDGER_URL}/genesis"
-		DOCKER_ENV="$DOCKER_ENV LEDGER_URL=${LEDGER_URL} GENESIS_URL=${GENESIS_URL}"
-	fi
+    start_faber
+    start_alice
+    start_acme
 
-	export $DOCKER_ENV
-
-	docker-compose -f ./docker/docker-compose.yml up -d
-	if [ "$LOGS" ]; then
-		start_logs
-	fi
-	exit 0
+    if [ "$LOGS" ]; then
+        start_logs
+    fi
+    exit 0
 }
 
 function web_down() {
-	docker-compose -f ./docker/docker-compose.yml down
-	exit 0
+    cd controllers/faber-controller
+    docker compose down
+    cd -
+    cd controllers/alice-controller
+    docker compose down
+    cd -
+    cd controllers/acme-controller
+    docker compose down
+    cd -
+    exit 0
 }
 
 function build() {
-	docker-compose -f ./docker/docker-compose.yml build --no-cache
-	exit $?
+    cd controllers/faber-controller
+    docker compose build --no-cache
+    cd -
+    cd controllers/alice-controller
+    docker compose build --no-cache
+    cd -
+    cd controllers/acme-controller
+    docker compose build --no-cache
+    cd -
+    exit $?
 }
 
 function display_help() {
-	help="$(basename "$0") [build|webstart|webdown|logs] [-h|--help] [-l|--logs]
+    help="$(basename "$0") [build|webstart|webdown|logs|start_faber|start_alice|start_acme] [-h|--help] [-l|--logs]
 
 1) webstart will start all agents and controllers in detached mode.
-	Passing the additional logging option (-l|--logs) will follow and output logs to the terminal.
+    Passing the additional logging option (-l|--logs) will follow and output logs to the terminal.
 
-	Example usage: ./run_demo webstart [-l|logs]
+    Example usage: ./run_demo webstart [-l|logs]
 
 2) webdown will stop all agents and controllers
-	
-	Example usage: ./run_demo webdown
+    
+    Example usage: ./run_demo webdown
 
-3) logs will will attach to a currently running demo and output logs to the terminal
-	Note: this will only work for an already running demo.
+3) logs will attach to a currently running demo and output logs to the terminal
+    Note: this will only work for an already running demo.
 
-	Example: ./run_demo logs
+    Example: ./run_demo logs
 
 4) build will do a '--no-cache' docker compose build. Not normally needed as 'webstart'
    does a build, but the "no-cache" option can be useful in some cases with docker caching.
 
-	Example: ./run_demo build
+    Example: ./run_demo build
+
+5) start_faber will start only the Faber controller.
+
+    Example: ./run_demo start_faber
+
+6) start_alice will start only the Alice controller.
+
+    Example: ./run_demo start_alice
+
+7) start_acme will start only the Acme controller.
+
+    Example: ./run_demo start_acme
 
 Options:
-	-h|--help  Help
-	-l|--logs  Display and follow log output in terminal"
-	echo "$help"
+    -h|--help  Help
+    -l|--logs  Display and follow log output in terminal"
+    echo "$help"
 }
 
 shopt -s nocasematch
@@ -96,32 +125,38 @@ cd $(dirname $0)
 
 for i in "$@"
 do
-	case $i in
-	-h|--help)
-		display_help
-		exit 0
-	;;
-	-l|--logs)
-		LOGS=1
-	;;
-	webstart|webdown)
-		DEMO=$i
-	;;
-	build)
-		build
-	;;
-	logs)
-		start_logs
-		exit 0
-	;;
-	esac
+    case $i in
+    -h|--help)
+        display_help
+        exit 0
+    ;;
+    -l|--logs)
+        LOGS=1
+    ;;
+    webstart|webdown|start_faber|start_alice|start_acme)
+        DEMO=$i
+    ;;
+    build)
+        build
+    ;;
+    logs)
+        start_logs
+        exit 0
+    ;;
+    esac
 done
 
 if [ "$DEMO" = "webstart" ]; then
-	web_start
+    web_start
 elif [ "$DEMO" = "webdown" ]; then
-	web_down
+    web_down
+elif [ "$DEMO" = "start_faber" ]; then
+    start_faber
+elif [ "$DEMO" = "start_alice" ]; then
+    start_alice
+elif [ "$DEMO" = "start_acme" ]; then
+    start_acme
 else
-	display_help
-	exit 1
+    display_help
+    exit 1
 fi

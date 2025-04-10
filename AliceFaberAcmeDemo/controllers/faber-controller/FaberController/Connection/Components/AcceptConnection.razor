@@ -16,7 +16,7 @@
         <div class="form-group">
             <label for="invitationObject">Paste invitation object block:</label>
             <InputTextArea class="form-control" id="invitationObject"
-                           @bind-Value="_acceptConnectionModel.InvitationObject" cols="30" rows="10"></InputTextArea>
+                @bind-Value="_acceptConnectionModel.InvitationObject" cols="30" rows="10"></InputTextArea>
 
             <div class="invalid-feedback d-block">
                 <ValidationMessage For="@(() => _acceptConnectionModel.InvitationObject)" />
@@ -25,7 +25,7 @@
         <div class="form-group">
             <label for="invitationUrl">Alternatively paste an invitation URL:</label>
             <InputText type="text" class="form-control" id="invitationUrl" name="invitation_url"
-                       @bind-Value="_acceptConnectionModel.InvitationUrl" @oninput="_parseInvitationUrl"></InputText>
+                @bind-Value="_acceptConnectionModel.InvitationUrl" @oninput="_parseInvitationUrl"></InputText>
             @if (_invitationUrlError)
             {
                 <small *ngIf="">
@@ -54,21 +54,30 @@
     {
         _invitationUrlError = false;
         var value = e.Value.ToString();
-        if (value == null || value == "")
+        if (string.IsNullOrEmpty(value))
         {
             return;
         }
         try
         {
             var uri = new Uri(value);
+            // Try to get the 'c_i' parameter first
             var invitationParam = HttpUtility.ParseQueryString(uri.Query).Get("c_i");
-            if (invitationParam == null || invitationParam == "")
+
+            // If 'c_i' is not found, try to get the 'oob' parameter
+            if (string.IsNullOrEmpty(invitationParam))
             {
-                throw new Exception();
+                invitationParam = HttpUtility.ParseQueryString(uri.Query).Get("oob");
             }
 
+            if (string.IsNullOrEmpty(invitationParam))
+            {
+                throw new Exception("No valid invitation parameter found in the URL.");
+            }
+
+            // Decode the Base64-encoded invitation parameter
             var data = System.Convert.FromBase64String(invitationParam);
-            var invitationObject = JsonConvert.DeserializeObject<dynamic>(System.Text.ASCIIEncoding.ASCII.GetString(data));
+            var invitationObject = JsonConvert.DeserializeObject<dynamic>(System.Text.Encoding.UTF8.GetString(data));
             _acceptConnectionModel.InvitationObject = invitationObject.ToString();
         }
         catch (Exception ex)

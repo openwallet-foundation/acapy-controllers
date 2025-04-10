@@ -1,159 +1,143 @@
-const http = require('http');
+const http = require("http");
+const axios = require("axios");
 
-const hostname = process.env.ACME_AGENT_HOST || 'localhost';
+const hostname = process.env.ACME_AGENT_HOST || "host.docker.internal";
 const port = 8041;
 
-console.log('Agent is running on: ' + `http://${hostname}:${port}`);
-
-function httpAsync(options, body) {
-    return new Promise(function (resolve, reject) {
-        const req = http.request(options, (res) => {
-            const { statusCode } = res;
-            const contentType = res.headers['content-type'];
-
-            let e;
-            if (statusCode !== 200) {
-                e = new Error('Request Failed.\n' + `Status Code: ${statusCode}`);
-            } else if (!/^application\/json/.test(contentType)) {
-                e = new Error('Invalid content-type.\n' + `Expected application/json but received ${contentType}`);
-            }
-            if (e) {
-                // Consume response data to free up memory
-                res.resume();
-                return reject(e);
-            }
-
-            res.setEncoding('utf8');
-            let rawData = '';
-            res.on('data', (chunk) => { rawData += chunk; });
-            res.on('end', () => {
-                try {
-                    const parsedData = JSON.parse(rawData);
-                    return resolve(parsedData);
-                } catch (e) {
-                    return reject(e);
-                }
-            });
-        }).on('error', (e) => {
-            return reject(e);
-        });
-        
-        if (body) {
-            req.write(body || '');
-        }
-        
-        req.end();
-    });
-}
+console.log("Agent is running on: " + `http://${hostname}:${port}`);
 
 class AgentService {
-    async getStatus() {
-        try {
-            const response = await httpAsync({
-                hostname: hostname,
-                port: port,
-                path: '/status',
-                method: 'GET'
-            });
-            return response;
-        } catch (error) {
-            console.error(error);
-            return null;
+  async getStatus() {
+    try {
+      const response = await axios.get(`http://${hostname}:${port}/status`);
+      return response.data;
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  }
+
+  async getConnections() {
+    try {
+      const response = await axios.get(
+        `http://${hostname}:${port}/connections`
+      );
+      return response.data.results;
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  }
+
+  async createInvitation() {
+    try {
+      // Define the request payload
+      const invitationRequest = {
+        handshake_protocols: ["https://didcomm.org/didexchange/1.1"],
+      };
+
+      // Make the POST request using axios
+      const response = await axios.post(
+        `http://${hostname}:${port}/out-of-band/create-invitation`,
+        invitationRequest,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
+      );
+
+      // Log the invitation data
+      console.log("Invitation created successfully:", response.data);
+
+      return response.data;
+    } catch (error) {
+      // Log any errors
+      console.error("Error creating invitation:", error.message);
+      return {};
+    }
+  }
+
+  async receiveInvitation(invitation) {
+    try {
+      // Step 1: Receive the invitation
+      const receiveInvitationUrl = `http://${hostname}:${port}/out-of-band/receive-invitation`;
+      console.log(
+        "Sending request to /out-of-band/receive-invitation with URL:",
+        receiveInvitationUrl
+      );
+      console.log("Request body:", JSON.stringify(invitation));
+
+      const response = await axios.post(receiveInvitationUrl, invitation, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log(
+        "API response from /out-of-band/receive-invitation:",
+        response.data
+      );
+
+      return response.data; // Return only the response from receive-invitation
+    } catch (error) {
+      console.error("Error in receiveInvitation:", error.message);
+      if (error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+      throw error; // Propagate the error to the caller
+    }
+  }
+
+  async removeConnection(connectionId) {
+    if (!connectionId) {
+      console.error("Must provide a connection ID");
+      return;
     }
 
-    async getConnections() {
-        try {
-            const response = await httpAsync({
-                hostname: hostname,
-                port: port,
-                path: '/connections',
-                method: 'GET'
-            });
-            return response.results;
-        } catch (error) {
-            console.error(error);
-            return [];
-        }
-    }
+    console.log(`Removing connection with ID: ${connectionId}`);
 
-    async createInvitation() {
-        try {
-            const response = await httpAsync({
-                hostname: hostname,
-                port: port,
-                path: '/connections/create-invitation',
-                method: 'POST'
-            });
-            return response;
-        } catch (error) {
-            console.error(error);
-            return {};
-        }
+    try {
+      await axios.delete(
+        `http://${hostname}:${port}/connections/${connectionId}`
+      );
+      console.log(`Connection with ID ${connectionId} removed successfully`);
+    } catch (error) {
+      console.error(
+        `Failed to remove connection with ID ${connectionId}:`,
+        error
+      );
     }
+  }
 
-    async receiveInvitation(invitation) {
-        try {
-            const response = await httpAsync({
-                hostname: hostname,
-                port: port,
-                path: '/connections/receive-invitation',
-                method: 'POST'
-            }, invitation);
-            return response;
-        } catch (error) {
-            console.error(error);
-            return;
-        }
+  async getProofRequests() {
+    try {
+      const response = await axios.get(
+        `http://${hostname}:${port}/present-proof-2.0/records`
+      );
+      return response.data.results;
+    } catch (error) {
+      console.error(error);
+      return [];
     }
+  }
 
-    async removeConnection(connectionId) {
-        try {
-            await httpAsync({
-                hostname: hostname,
-                port: port,
-                path: `/connections/${connectionId}/remove`,
-                method: 'POST'
-            });
-        } catch (error) {
-            console.error(error);
-        } finally {
-            return;
+  async sendProofRequest(proofRequest) {
+    try {
+      await axios.post(
+        `http://${hostname}:${port}/present-proof-2.0/send-request`,
+        proofRequest,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
+      );
+    } catch (error) {
+      console.error(error);
     }
-
-    async getProofRequests() {
-        try {
-            const response = await httpAsync({
-                hostname: hostname,
-                port: port,
-                path: '/present-proof/records',
-                method: 'GET'
-            });
-            return response.results;
-        } catch (error) {
-            console.error(error);
-            return [];
-        }
-    }
-
-    async sendProofRequest(proofRequest) {
-        try {
-            await httpAsync({
-                hostname: hostname,
-                port: port,
-                path: '/present-proof/send-request',
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            }, proofRequest);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            return;
-        }
-    }
+  }
 }
 
 module.exports = new AgentService();

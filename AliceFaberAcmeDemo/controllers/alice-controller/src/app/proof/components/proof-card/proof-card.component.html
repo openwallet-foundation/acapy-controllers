@@ -1,27 +1,32 @@
 <div class="card shadow-sm">
-    <div class="card-body">
-        <div class="card-title">
-            <h5>
-                <span>{{ proof?.presentation_request?.name }}</span>
-                <span
-                    *ngIf="proof?.presentation_request?.version">&nbsp;({{ proof?.presentation_request?.version }})</span>
-            </h5>
-            <small>
-                <span *ngIf="proof?.initiator === 'self'">Sent&nbsp;</span>
-                <span *ngIf="proof?.initiator === 'external'">Received&nbsp;</span>
-            </small>
-            <small class="text-muted">{{ proof?.created_at | toDate | date:'medium' }}</small>
-        </div>
-        <div class="card-text">
-            <div>
-                <small class="text-muted">Presentation Exchange ID:&nbsp;</small>
-                <p>{{ proof?.presentation_exchange_id }}</p>
-            </div>
-        </div>
+  <div class="card-body">
+    <div class="card-title">
+      <h5>
+        <span>{{ proof?.by_format?.pres_request?.indy?.name }}</span>
+        <span *ngIf="proof?.by_format?.pres_request?.indy?.version">
+          &nbsp;({{ proof?.by_format?.pres_request?.indy?.version }})
+        </span>
+      </h5>
+      <small>
+        <span *ngIf="proof?.initiator === 'self'">Sent&nbsp;</span>
+        <span *ngIf="proof?.initiator === 'external'">Received&nbsp;</span>
+      </small>
+      <small class="text-muted">{{
+        proof?.created_at | toDate | date : "medium"
+      }}</small>
     </div>
-    <div class="card-footer">
-        <p class="card-text">
-            <small class="text-muted">Updated at {{ proof?.updated_at | toDate | date:'medium' }}</small>
-        </p>
+    <div class="card-text">
+      <div>
+        <small class="text-muted">Presentation Exchange ID:&nbsp;</small>
+        <p>{{ proof?.pres_ex_id }}</p>
+      </div>
     </div>
+  </div>
+  <div class="card-footer">
+    <p class="card-text">
+      <small class="text-muted"
+        >Updated at {{ proof?.updated_at | toDate | date : "medium" }}</small
+      >
+    </p>
+  </div>
 </div>
