@@ -1,9 +1,9 @@
-version: '3'
+version: "3"
 services:
   faber-controller:
     build: .
     ports:
-      - "8120:80"  # Expose a different port for the controller
+      - "8120:80" # Expose a different port for the controller
     environment:
       - AGENT_HOST=host.docker.internal
       - AGENT_PORT=8020

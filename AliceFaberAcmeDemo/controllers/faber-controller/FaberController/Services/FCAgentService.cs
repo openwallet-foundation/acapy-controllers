@@ -6,19 +6,17 @@ using System.Threading.Tasks;
 using FaberController.Enums;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 
 namespace FaberController.Services
 {
     public class FCAgentService
     {
+        private readonly HttpClient _http;
+
         public FCAgentService(HttpClient http)
         {
             _http = http;
         }
-
-        private HttpClient _http { get; }
 
         public async Task<AgentStatus> GetStatus()
         {
@@ -63,11 +61,9 @@ namespace FaberController.Services
 
             try
             {
-                // Correct endpoint for removing a connection
                 var response = await _http.DeleteAsync($"/connections/{connectionId}");
                 response.EnsureSuccessStatusCode();
 
-                // Read and parse the response
                 var responseString = await response.Content.ReadAsStringAsync();
                 return !string.IsNullOrEmpty(responseString) ? JObject.Parse(responseString) : new JObject();
             }
@@ -87,31 +83,23 @@ namespace FaberController.Services
         {
             try
             {
-            // Define the request payload
-            var invitationRequest = new
-            {
-                handshake_protocols = new[] { "https://didcomm.org/didexchange/1.1" }
-            };
+                var invitationRequest = new
+                {
+                    handshake_protocols = new[] { "https://didcomm.org/didexchange/1.1" }
+                };
 
-            // Serialize the payload to JSON
-            var content = new StringContent(JsonConvert.SerializeObject(invitationRequest), Encoding.UTF8, "application/json");
+                var content = new StringContent(JsonConvert.SerializeObject(invitationRequest), Encoding.UTF8, "application/json");
+                var response = await _http.PostAsync("/out-of-band/create-invitation", content);
+                response.EnsureSuccessStatusCode();
 
-            // Send the POST request to the /out-of-band/create-invitation endpoint
-            var response = await _http.PostAsync("/out-of-band/create-invitation", content);
-            response.EnsureSuccessStatusCode();
+                var responseString = await response.Content.ReadAsStringAsync();
+                var invitation = JObject.Parse(responseString);
 
-            // Read and parse the response
-            var responseString = await response.Content.ReadAsStringAsync();
-            var invitation = JObject.Parse(responseString);
-
-            // Log the invitation data
-            Console.WriteLine("Invitation created successfully: " + invitation.ToString());
-
-            return invitation;
+                Console.WriteLine("Invitation created successfully: " + invitation.ToString());
+                return invitation;
             }
             catch (Exception ex)
             {
-                // Log any errors
                 Console.Error.WriteLine(ex);
                 return new JObject();
             }
@@ -121,7 +109,6 @@ namespace FaberController.Services
         {
             try
             {
-                // Step 1: Receive the invitation
                 using var content = new StringContent(invitation, Encoding.UTF8, "application/json");
                 var response = await _http.PostAsync("/out-of-band/receive-invitation", content);
                 response.EnsureSuccessStatusCode();
@@ -130,13 +117,12 @@ namespace FaberController.Services
                 var invitationResponse = JObject.Parse(responseString);
 
                 Console.WriteLine("Invitation received successfully.");
-                
-                return invitationResponse; // Return only the response from receive-invitation
+                return invitationResponse;
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"Error in ReceiveInvitation: {ex.Message}");
-                return new JObject(); // Return empty object on failure
+                return new JObject();
             }
         }
 
@@ -215,14 +201,13 @@ namespace FaberController.Services
         {
             try
             {
-                    // Print the content before sending the request
-                      Console.WriteLine("Sending Credential Request:");
-                     Console.WriteLine(credential);
+                Console.WriteLine("Sending Credential Request:");
+                Console.WriteLine(credential);
 
                 using var content = new StringContent(credential, Encoding.UTF8, "application/json");
-                 // Print the content before sending the request
-                      Console.WriteLine("Sending Content Request:");
-                     Console.WriteLine(content);
+                Console.WriteLine("Sending Content Request:");
+                Console.WriteLine(content);
+
                 var response = await _http.PostAsync("/issue-credential-2.0/send-offer", content);
                 response.EnsureSuccessStatusCode();
 
@@ -235,6 +220,5 @@ namespace FaberController.Services
                 return new JObject();
             }
         }
-
     }
 }

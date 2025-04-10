@@ -83,26 +83,7 @@
             }
         }
     }
-
-    {{!-- function decode(e) {
-        try {
-            const value = e.target.value;
-            if (!value) {
-                return;
-            }
-            const url = new URL(value);
-            const invitationParam = url.searchParams.get('c_i');
-            if (!invitationParam) {
-                throw new Error();
-            }
-
-            objectInput.value = JSON.stringify(JSON.parse(atob(invitationParam)), null, 4);
-            removeInvalidObjectErr();
-        } catch (error) {
-            urlInput.parentNode.appendChild(invalidUrlEl);
-        }
-    } --}}
-
+    
     function decode(e) {
     try {
         const value = e.target.value;
