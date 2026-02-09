@@ -1,4 +1,4 @@
-FROM node:23 as build
+FROM node:25 as build
 COPY . .
 RUN npm install
 ENTRYPOINT [ "npm", "start" ]
