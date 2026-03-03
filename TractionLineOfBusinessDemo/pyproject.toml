@@ -8,7 +8,7 @@ authors = ["Jason Sherman <tools@usingtechnolo.gy>"]
 python = "^3.10"
 Random-Word = "^1.0.11"
 requests = "^2.32.3"
-aiohttp = "^3.10.2"
+aiohttp = "^3.10.11"
 
 [tool.poetry.dev-dependencies]
 
